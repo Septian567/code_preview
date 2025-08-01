@@ -9,19 +9,25 @@
 </head>
 <body>
   <div class="tabs">
-    <button data-tab="html" class="active">index.html</button>
-    <button data-tab="css">style.css</button>
-    <button data-tab="js">script.js</button>
-  </div>
-  <div class="container">
-    <div class="editors">
+  <button data-tab="html" class="active">index.html</button>
+  <button data-tab="css">style.css</button>
+  <button data-tab="js">script.js</button>
+  <button id="togglePreview" class="mobile-only">Preview</button>
+</div>
+
+  <div class="container" id="container">
+    <div class="editors" id="editors">
       <div id="htmlEditor" class="editor"></div>
       <div id="cssEditor" class="editor hidden"></div>
       <div id="jsEditor" class="editor hidden"></div>
     </div>
+
+    <div class="resizer" id="resizer"></div>
+
     <iframe id="preview"></iframe>
   </div>
 
   <script src="script.js"></script>
 </body>
+
 </html>

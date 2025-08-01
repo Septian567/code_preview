@@ -48,13 +48,11 @@ require(["vs/editor/editor.main"], function () {
     const css = cssEditor.getValue();
     const js = jsEditor.getValue();
 
-    // Replace <link> with actual <style>
     html = html.replace(
       /<link\s+rel=["']stylesheet["']\s+href=["']style\.css["']\s*\/?>/gi,
       `<style>${css}</style>`
     );
 
-    // Replace <script src=""> with inline <script>
     html = html.replace(
       /<script\s+src=["']script\.js["']\s*><\/script>/gi,
       `<script>${js}<\/script>`
@@ -73,8 +71,8 @@ require(["vs/editor/editor.main"], function () {
 
   updatePreview();
 
-  // Tab switching logic
-  document.querySelectorAll(".tabs button").forEach((button) => {
+  // Tab switching
+  document.querySelectorAll(".tabs button[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
       document
         .querySelectorAll(".tabs button")
@@ -94,4 +92,76 @@ require(["vs/editor/editor.main"], function () {
         document.getElementById("jsEditor").classList.remove("hidden");
     });
   });
+
+  // === Responsive Dragging ===
+  const resizer = document.getElementById("resizer");
+  const container = document.getElementById("container");
+  const editors = document.getElementById("editors");
+  const preview = document.getElementById("preview");
+  const toggleBtn = document.getElementById("togglePreview");
+
+  let isResizing = false;
+  let vertical = false;
+
+  function updateLayoutDirection() {
+    vertical = window.innerWidth <= 768;
+    container.classList.toggle("vertical", vertical);
+
+    // Reset preview mode if back to desktop
+    if (!vertical) {
+      container.classList.remove("preview-mode");
+      if (toggleBtn) toggleBtn.textContent = "Preview";
+    }
+  }
+
+  updateLayoutDirection();
+  window.addEventListener("resize", updateLayoutDirection);
+
+  resizer.addEventListener("mousedown", function () {
+    isResizing = true;
+    document.body.style.cursor = vertical ? "row-resize" : "col-resize";
+  });
+
+  document.addEventListener("mousemove", function (e) {
+    if (!isResizing) return;
+
+    const rect = container.getBoundingClientRect();
+
+    if (vertical) {
+      const offsetY = e.clientY - rect.top;
+      const minHeight = 100;
+      const maxHeight = rect.height - 100;
+
+      const editorHeight = Math.min(Math.max(offsetY, minHeight), maxHeight);
+      const previewHeight = rect.height - editorHeight - resizer.offsetHeight;
+
+      editors.style.height = `${editorHeight}px`;
+      preview.style.height = `${previewHeight}px`;
+    } else {
+      const offsetX = e.clientX - rect.left;
+      const minWidth = 200;
+      const maxWidth = rect.width - 200;
+
+      const editorWidth = Math.min(Math.max(offsetX, minWidth), maxWidth);
+      const previewWidth = rect.width - editorWidth - resizer.offsetWidth;
+
+      editors.style.width = `${editorWidth}px`;
+      preview.style.width = `${previewWidth}px`;
+    }
+  });
+
+  document.addEventListener("mouseup", function () {
+    isResizing = false;
+    document.body.style.cursor = "default";
+  });
+
+  // Mobile-only toggle preview button
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      container.classList.toggle("preview-mode");
+      toggleBtn.textContent = container.classList.contains("preview-mode")
+        ? "Editor"
+        : "Preview";
+    });
+  }
 });
