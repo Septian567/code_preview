@@ -37,14 +37,12 @@ html, body {
 }
 
 .editors {
-  position: relative;
   width: 50%;
   height: 100%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #333;
 }
-
 
 .editor {
   flex: 1;
@@ -157,18 +155,11 @@ html, body {
   }
 }
 
-.touch-shield {
-  position: absolute;
-  top: 40px; /* tinggi tab bar */
-  left: 0;
-  width: 100%;
-  height: calc(100% - 40px);
-  z-index: 10;
+/* Add to style.css */
+.editor textarea {
+  pointer-events: none;
 }
 
-@media (min-width: 769px) {
-  .touch-shield {
-    display: none;
-  }
+.editor.focus-mode textarea {
+  pointer-events: auto;
 }
-

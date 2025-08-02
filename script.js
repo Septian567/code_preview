@@ -43,14 +43,6 @@ require(["vs/editor/editor.main"], function () {
     automaticLayout: true,
   });
 
-  const editors = document.querySelector(".editors");
-  const preview = document.getElementById("preview");
-  const container = document.querySelector(".container");
-  const resizer = document.getElementById("resizer");
-  const showKeyboardBtn = document.getElementById("showKeyboard");
-  const toggleBtn = document.getElementById("togglePreview");
-  const touchShield = document.getElementById("touchShield");
-
   function updatePreview() {
     let html = htmlEditor.getValue();
     const css = cssEditor.getValue();
@@ -66,7 +58,8 @@ require(["vs/editor/editor.main"], function () {
       `<script>${js}<\/script>`
     );
 
-    const doc = preview.contentDocument || preview.contentWindow.document;
+    const iframe = document.getElementById("preview");
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
     doc.open();
     doc.write(html);
     doc.close();
@@ -92,66 +85,97 @@ require(["vs/editor/editor.main"], function () {
         .forEach((ed) => ed.classList.add("hidden"));
 
       if (tab === "html")
-        htmlEditor.getDomNode().parentElement.classList.remove("hidden");
+        document.getElementById("htmlEditor").classList.remove("hidden");
       if (tab === "css")
-        cssEditor.getDomNode().parentElement.classList.remove("hidden");
+        document.getElementById("cssEditor").classList.remove("hidden");
       if (tab === "js")
-        jsEditor.getDomNode().parentElement.classList.remove("hidden");
-
-      resetTouchShieldIfMobile();
+        document.getElementById("jsEditor").classList.remove("hidden");
     });
   });
 
-  // === Mobile-specific behavior ===
+  // Keyboard control for mobile
+  const showKeyboardBtn = document.getElementById("showKeyboard");
+  let isKeyboardActive = false;
 
-  function isMobile() {
-    return window.innerWidth <= 768;
-  }
-
-  function resetTouchShieldIfMobile() {
-    if (isMobile() && touchShield) {
-      touchShield.style.display = "block";
-    }
-  }
-
-  // Keyboard button for mobile
-  if (showKeyboardBtn) {
-    showKeyboardBtn.addEventListener("click", () => {
-      let activeTab = document
-        .querySelector(".tabs button.active")
-        ?.getAttribute("data-tab");
-      let editorInstance;
-      if (activeTab === "html") editorInstance = htmlEditor;
-      if (activeTab === "css") editorInstance = cssEditor;
-      if (activeTab === "js") editorInstance = jsEditor;
-
-      if (editorInstance) {
-        editorInstance.focus();
-        if (touchShield) touchShield.style.display = "none";
-      }
-    });
-  }
-
-  // Prevent touch from triggering keyboard
-  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
+  function setupEditorTouchBehavior(editor, editorElement) {
     const domNode = editor.getDomNode();
     if (domNode) {
       domNode.addEventListener(
         "touchstart",
         (e) => {
-          if (isMobile()) e.preventDefault();
+          if (!isKeyboardActive) {
+            e.preventDefault();
+          }
         },
         { passive: false }
       );
     }
-  });
 
-  // === Resizer logic ===
+    // Blur editor when clicking outside
+    document.addEventListener("touchstart", (e) => {
+      if (isKeyboardActive && !editorElement.contains(e.target)) {
+        editor.blur();
+        editorElement.classList.remove("focus-mode");
+        isKeyboardActive = false;
+      }
+    });
+  }
+
+  // Setup touch behavior for all editors
+  setupEditorTouchBehavior(htmlEditor, document.getElementById("htmlEditor"));
+  setupEditorTouchBehavior(cssEditor, document.getElementById("cssEditor"));
+  setupEditorTouchBehavior(jsEditor, document.getElementById("jsEditor"));
+
+  if (showKeyboardBtn) {
+    showKeyboardBtn.addEventListener("click", () => {
+      let activeTab = document
+        .querySelector(".tabs button.active")
+        ?.getAttribute("data-tab");
+      let editorInstance, editorElement;
+
+      if (activeTab === "html") {
+        editorInstance = htmlEditor;
+        editorElement = document.getElementById("htmlEditor");
+      }
+      if (activeTab === "css") {
+        editorInstance = cssEditor;
+        editorElement = document.getElementById("cssEditor");
+      }
+      if (activeTab === "js") {
+        editorInstance = jsEditor;
+        editorElement = document.getElementById("jsEditor");
+      }
+
+      if (editorInstance && editorElement) {
+        isKeyboardActive = !isKeyboardActive;
+
+        if (isKeyboardActive) {
+          editorElement.classList.add("focus-mode");
+          editorInstance.focus();
+          const position = editorInstance.getPosition();
+          editorInstance.revealPositionInCenter(position);
+          showKeyboardBtn.textContent = "Hide Keyboard";
+        } else {
+          editorElement.classList.remove("focus-mode");
+          editorInstance.blur();
+          showKeyboardBtn.textContent = "Keyboard";
+        }
+      }
+    });
+  }
+
+  // Responsive Dragging
+  const resizer = document.getElementById("resizer");
+  const container = document.getElementById("container");
+  const editors = document.getElementById("editors");
+  const preview = document.getElementById("preview");
+  const toggleBtn = document.getElementById("togglePreview");
+
   let isResizing = false;
   let vertical = false;
 
   function updateLayoutDirection() {
-    vertical = isMobile();
+    vertical = window.innerWidth <= 768;
     container.classList.toggle("vertical", vertical);
 
     if (!vertical) {
@@ -201,17 +225,13 @@ require(["vs/editor/editor.main"], function () {
     document.body.style.cursor = "default";
   });
 
-  // Preview toggle button
+  // Mobile-only toggle preview button
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       container.classList.toggle("preview-mode");
       toggleBtn.textContent = container.classList.contains("preview-mode")
         ? "Editor"
         : "Preview";
-
-      if (!container.classList.contains("preview-mode")) {
-        resetTouchShieldIfMobile();
-      }
     });
   }
 });
