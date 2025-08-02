@@ -179,3 +179,10 @@ html, body {
   -webkit-user-select: none;
 }
 
+.monaco-scrollable-element > .scrollbar.horizontal {
+  height: 38px !important;
+  min-height: 38px !important;
+}
+.monaco-scrollable-element > .scrollbar.horizontal .slider {
+  height: 38px !important;
+}

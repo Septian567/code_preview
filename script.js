@@ -104,23 +104,37 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
-  function setupTouchScrolling(editor, domNode) {
+  function setupMobileFriendlyScroll(editor, domNode) {
     if (!domNode) return;
 
+    // Set scrollbar height to 1cm (approx 38px)
+    const style = document.createElement("style");
+    style.id = "monaco-scrollbar-style";
+    style.textContent = `
+      .monaco-scrollable-element > .scrollbar.horizontal {
+        height: 38px !important;
+        min-height: 38px !important;
+      }
+      .monaco-scrollable-element > .scrollbar.horizontal .slider {
+        height: 38px !important;
+      }
+      .monaco-scrollable-element > .scrollbar.horizontal .slider:active {
+        height: 38px !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Setup touch scrolling
     let startX, startY, isScrolling;
     const scrollableElement = domNode.querySelector(
       ".monaco-scrollable-element"
     );
     if (!scrollableElement) return;
 
-    // Enable touch scrolling
-    domNode.style.touchAction = "none"; // We'll handle it manually
-
     domNode.addEventListener(
       "touchstart",
       (e) => {
         if (editMode) return;
-
         const touch = e.touches[0];
         startX = touch.clientX;
         startY = touch.clientY;
@@ -133,12 +147,10 @@ require(["vs/editor/editor.main"], function () {
       "touchmove",
       (e) => {
         if (editMode) return;
-
         const touch = e.touches[0];
         const diffX = touch.clientX - startX;
         const diffY = touch.clientY - startY;
 
-        // Determine if user is trying to scroll
         if (!isScrolling && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
           isScrolling = true;
         }
@@ -199,8 +211,8 @@ require(["vs/editor/editor.main"], function () {
         margin.style.backgroundColor = "#252526";
       }
 
-      // Setup touch scrolling
-      setupTouchScrolling(editor, domNode);
+      // Setup mobile-friendly scroll
+      setupMobileFriendlyScroll(editor, domNode);
     } else {
       // Remove overlay
       if (overlay) {
@@ -215,6 +227,12 @@ require(["vs/editor/editor.main"], function () {
       }
       if (margin) {
         margin.style.backgroundColor = "";
+      }
+
+      // Remove custom scrollbar style
+      const existingStyle = document.getElementById("monaco-scrollbar-style");
+      if (existingStyle) {
+        existingStyle.remove();
       }
     }
   }
@@ -247,7 +265,7 @@ require(["vs/editor/editor.main"], function () {
           alwaysConsumeMouseWheel: false,
           handleMouseWheel: true,
           horizontal: "auto",
-          horizontalScrollbarSize: 8,
+          horizontalScrollbarSize: 38, // 1cm in pixels
           verticalScrollbarSize: 8,
           useShadows: false,
         },
@@ -295,7 +313,7 @@ require(["vs/editor/editor.main"], function () {
   // Initialize touch scrolling for all editors
   [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
     const domNode = editor.getDomNode();
-    setupTouchScrolling(editor, domNode);
+    setupMobileFriendlyScroll(editor, domNode);
   });
 
   // Apply to all editors initially
