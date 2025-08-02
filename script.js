@@ -104,44 +104,55 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
-  function completelyDisableEditor(editor) {
+  function applyReadModeStyles(editor, apply) {
     if (!editor) return;
 
-    // Remove all decorations
-    const model = editor.getModel();
-    if (model) {
-      const decorations = editor.getDecorationsInRange(
-        model.getFullModelRange()
-      );
-      if (decorations) {
-        editor.deltaDecorations(
-          decorations.map((d) => d.id),
-          []
-        );
+    const domNode = editor.getDomNode();
+    if (!domNode) return;
+
+    const overlayId = "editorOverlay";
+    let overlay = domNode.querySelector(`#${overlayId}`);
+    const linesContent = domNode.querySelector(".lines-content");
+    const margin = domNode.querySelector(".margin");
+
+    if (apply) {
+      // Add overlay
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = overlayId;
+        overlay.style.position = "absolute";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.width = "100%";
+        overlay.style.height = "100%";
+        overlay.style.zIndex = "10";
+        overlay.style.cursor = "default";
+        domNode.appendChild(overlay);
+      }
+
+      // Apply margin left
+      if (linesContent) {
+        linesContent.style.marginLeft = "20px";
+        linesContent.style.paddingLeft = "10px";
+      }
+      if (margin) {
+        margin.style.backgroundColor = "#252526";
+      }
+    } else {
+      // Remove overlay
+      if (overlay) {
+        overlay.remove();
+      }
+
+      // Reset margin
+      if (linesContent) {
+        linesContent.style.marginLeft = "";
+        linesContent.style.paddingLeft = "";
+      }
+      if (margin) {
+        margin.style.backgroundColor = "";
       }
     }
-
-    // Clear selections and move cursor to start
-    editor.setSelections([]);
-    editor.setPosition({ lineNumber: 1, column: 1 });
-
-    // Disable editor content widget
-    const contentWidget = {
-      getId: () => "disableWidget",
-      getDomNode: () => {
-        const node = document.createElement("div");
-        node.style.position = "absolute";
-        node.style.top = "0";
-        node.style.left = "0";
-        node.style.width = "100%";
-        node.style.height = "100%";
-        node.style.zIndex = "10";
-        return node;
-      },
-      getPosition: () => null,
-    };
-
-    editor.addContentWidget(contentWidget);
   }
 
   function updateEditModeForActiveEditor() {
@@ -187,33 +198,13 @@ require(["vs/editor/editor.main"], function () {
         contributions: editMode ? undefined : [],
       });
 
-      const domNode = editorInstance.getDomNode();
-      if (domNode) {
-        domNode.classList.toggle("readonly", !editMode);
+      // Apply or remove read mode styles
+      applyReadModeStyles(editorInstance, !editMode);
 
-        // Add overlay div in read mode
-        const overlayId = "editorOverlay";
-        let overlay = domNode.querySelector(`#${overlayId}`);
-
-        if (!editMode) {
-          if (!overlay) {
-            overlay = document.createElement("div");
-            overlay.id = overlayId;
-            overlay.style.position = "absolute";
-            overlay.style.top = "0";
-            overlay.style.left = "0";
-            overlay.style.width = "100%";
-            overlay.style.height = "100%";
-            overlay.style.zIndex = "10";
-            overlay.style.cursor = "default";
-            domNode.appendChild(overlay);
-          }
-
-          // Completely disable editor
-          completelyDisableEditor(editorInstance);
-        } else if (overlay) {
-          overlay.remove();
-        }
+      // Force remove cursor and selections
+      if (!editMode) {
+        editorInstance.setSelections([]);
+        editorInstance.setPosition({ lineNumber: 1, column: 1 });
       }
     }
   }
