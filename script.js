@@ -5,7 +5,6 @@ require.config({
 });
 
 require(["vs/editor/editor.main"], function () {
-  // Inisialisasi editor
   const htmlEditor = monaco.editor.create(
     document.getElementById("htmlEditor"),
     {
@@ -44,7 +43,6 @@ require(["vs/editor/editor.main"], function () {
     automaticLayout: true,
   });
 
-  // Fungsi update preview
   function updatePreview() {
     let html = htmlEditor.getValue();
     const css = cssEditor.getValue();
@@ -73,76 +71,6 @@ require(["vs/editor/editor.main"], function () {
 
   updatePreview();
 
-  // Blokir keyboard muncul saat editor disentuh
-  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
-    const domNode = editor.getDomNode();
-    if (domNode) {
-      // Blokir semua interaksi touch
-      domNode.addEventListener(
-        "touchstart",
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        },
-        { passive: false }
-      );
-
-      // Blokir juga pada scrollbar
-      const scrollbar = domNode.querySelector(".monaco-scrollable-element");
-      if (scrollbar) {
-        scrollbar.addEventListener(
-          "touchstart",
-          (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          },
-          { passive: false }
-        );
-      }
-    }
-
-    // Pastikan scrolling tidak memunculkan keyboard
-    editor.onDidScrollChange(() => {
-      const textarea = editor.getDomNode()?.querySelector("textarea");
-      if (textarea && document.activeElement === textarea) {
-        textarea.blur();
-      }
-    });
-  });
-
-  // Fungsi untuk tombol keyboard
-  const showKeyboardBtn = document.getElementById("showKeyboard");
-  if (showKeyboardBtn) {
-    showKeyboardBtn.addEventListener("click", () => {
-      const activeTab = document
-        .querySelector(".tabs button.active")
-        ?.getAttribute("data-tab");
-      let editorInstance;
-
-      if (activeTab === "html") editorInstance = htmlEditor;
-      if (activeTab === "css") editorInstance = cssEditor;
-      if (activeTab === "js") editorInstance = jsEditor;
-
-      if (editorInstance) {
-        // Teknik untuk memunculkan keyboard
-        const tempTextarea = document.createElement("textarea");
-        tempTextarea.style.position = "fixed";
-        tempTextarea.style.top = "0";
-        tempTextarea.style.left = "0";
-        tempTextarea.style.opacity = "0";
-        document.body.appendChild(tempTextarea);
-        tempTextarea.focus();
-
-        setTimeout(() => {
-          editorInstance.focus();
-          const position = editorInstance.getPosition();
-          editorInstance.revealPositionInCenter(position);
-          document.body.removeChild(tempTextarea);
-        }, 100);
-      }
-    });
-  }
-
   // Tab switching
   document.querySelectorAll(".tabs button[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -165,7 +93,56 @@ require(["vs/editor/editor.main"], function () {
     });
   });
 
-  // Responsive dragging
+  // Double-tap keyboard button
+  const showKeyboardBtn = document.getElementById("showKeyboard");
+  if (showKeyboardBtn) {
+    let lastTapTime = 0;
+    const doubleTapThreshold = 300; // ms
+
+    showKeyboardBtn.addEventListener("click", (e) => {
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTapTime;
+
+      if (tapLength < doubleTapThreshold && tapLength > 0) {
+        // Double-tap detected
+        showKeyboardBtn.classList.add("active");
+
+        let activeTab = document
+          .querySelector(".tabs button.active")
+          ?.getAttribute("data-tab");
+        let editorInstance;
+        if (activeTab === "html") editorInstance = htmlEditor;
+        if (activeTab === "css") editorInstance = cssEditor;
+        if (activeTab === "js") editorInstance = jsEditor;
+
+        if (editorInstance) {
+          editorInstance.focus();
+        }
+
+        // Reset after 1 second
+        setTimeout(() => {
+          showKeyboardBtn.classList.remove("active");
+        }, 1000);
+      }
+      lastTapTime = currentTime;
+    });
+  }
+
+  // Prevent auto-focus on mobile
+  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      domNode.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+    }
+  });
+
+  // Resizer functionality
   const resizer = document.getElementById("resizer");
   const container = document.getElementById("container");
   const editors = document.getElementById("editors");
@@ -188,13 +165,15 @@ require(["vs/editor/editor.main"], function () {
   updateLayoutDirection();
   window.addEventListener("resize", updateLayoutDirection);
 
-  resizer.addEventListener("mousedown", function () {
+  resizer.addEventListener("mousedown", function (e) {
+    e.preventDefault();
     isResizing = true;
     document.body.style.cursor = vertical ? "row-resize" : "col-resize";
   });
 
   document.addEventListener("mousemove", function (e) {
     if (!isResizing) return;
+    e.preventDefault();
 
     const rect = container.getBoundingClientRect();
 
@@ -221,7 +200,8 @@ require(["vs/editor/editor.main"], function () {
     }
   });
 
-  document.addEventListener("mouseup", function () {
+  document.addEventListener("mouseup", function (e) {
+    e.preventDefault();
     isResizing = false;
     document.body.style.cursor = "default";
   });
