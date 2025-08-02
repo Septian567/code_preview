@@ -104,6 +104,51 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
+  function setupHorizontalScroll(editorDomNode) {
+    if (!editorDomNode) return;
+
+    const scrollableElement = editorDomNode.querySelector(
+      ".monaco-scrollable-element"
+    );
+    if (!scrollableElement) return;
+
+    // Enable horizontal scrolling
+    scrollableElement.style.overflowX = "auto";
+    scrollableElement.style.touchAction = "pan-x pan-y";
+
+    // Add scroll indicators
+    const container = scrollableElement.parentElement;
+    if (!container.querySelector(".scroll-indicator-right")) {
+      const rightIndicator = document.createElement("div");
+      rightIndicator.className = "scroll-indicator-right";
+      rightIndicator.innerHTML = "→";
+      rightIndicator.style.position = "absolute";
+      rightIndicator.style.right = "5px";
+      rightIndicator.style.top = "50%";
+      rightIndicator.style.transform = "translateY(-50%)";
+      rightIndicator.style.color = "#888";
+      rightIndicator.style.fontSize = "20px";
+      rightIndicator.style.pointerEvents = "none";
+      rightIndicator.style.zIndex = "9";
+      container.appendChild(rightIndicator);
+    }
+
+    if (!container.querySelector(".scroll-indicator-left")) {
+      const leftIndicator = document.createElement("div");
+      leftIndicator.className = "scroll-indicator-left";
+      leftIndicator.innerHTML = "←";
+      leftIndicator.style.position = "absolute";
+      leftIndicator.style.left = "25px"; // Sesuai dengan margin left
+      leftIndicator.style.top = "50%";
+      leftIndicator.style.transform = "translateY(-50%)";
+      leftIndicator.style.color = "#888";
+      leftIndicator.style.fontSize = "20px";
+      leftIndicator.style.pointerEvents = "none";
+      leftIndicator.style.zIndex = "9";
+      container.appendChild(leftIndicator);
+    }
+  }
+
   function applyReadModeStyles(editor, apply) {
     if (!editor) return;
 
@@ -130,28 +175,39 @@ require(["vs/editor/editor.main"], function () {
         domNode.appendChild(overlay);
       }
 
-      // Apply margin left
+      // Apply margin left and enable horizontal scroll
       if (linesContent) {
         linesContent.style.marginLeft = "20px";
         linesContent.style.paddingLeft = "10px";
+        linesContent.style.minWidth = "fit-content";
       }
       if (margin) {
         margin.style.backgroundColor = "#252526";
       }
+
+      // Setup horizontal scroll
+      setupHorizontalScroll(domNode);
     } else {
       // Remove overlay
       if (overlay) {
         overlay.remove();
       }
 
-      // Reset margin
+      // Reset styles
       if (linesContent) {
         linesContent.style.marginLeft = "";
         linesContent.style.paddingLeft = "";
+        linesContent.style.minWidth = "";
       }
       if (margin) {
         margin.style.backgroundColor = "";
       }
+
+      // Remove scroll indicators
+      const indicators = domNode.querySelectorAll(
+        ".scroll-indicator-right, .scroll-indicator-left"
+      );
+      indicators.forEach((ind) => ind.remove());
     }
   }
 
@@ -182,6 +238,9 @@ require(["vs/editor/editor.main"], function () {
         scrollbar: {
           alwaysConsumeMouseWheel: false,
           handleMouseWheel: true,
+          horizontal: "auto",
+          horizontalScrollbarSize: 10,
+          useShadows: false,
         },
         mouseWheelZoom: editMode,
         contextmenu: editMode,
@@ -194,6 +253,8 @@ require(["vs/editor/editor.main"], function () {
         overviewRulerLanes: editMode ? 3 : 0,
         renderIndentGuides: editMode,
         renderValidationDecorations: "off",
+        wordWrap: "off", // Ensure horizontal scroll works
+        wrappingIndent: "none",
         // Disable all editor contributions
         contributions: editMode ? undefined : [],
       });
@@ -205,6 +266,11 @@ require(["vs/editor/editor.main"], function () {
       if (!editMode) {
         editorInstance.setSelections([]);
         editorInstance.setPosition({ lineNumber: 1, column: 1 });
+
+        // Trigger layout update for scrollbar
+        setTimeout(() => {
+          editorInstance.layout();
+        }, 100);
       }
     }
   }
