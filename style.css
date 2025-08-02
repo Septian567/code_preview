@@ -5,8 +5,10 @@ html, body {
   font-family: 'Fira Code', monospace;
   background-color: #1e1e1e;
   color: white;
+  overflow: hidden;
 }
 
+/* === Tabs === */
 .tabs {
   display: flex;
   background: #252526;
@@ -31,27 +33,52 @@ html, body {
   border-bottom: 2px solid #007acc;
 }
 
+/* === Layout Container === */
 .container {
   display: flex;
-  height: calc(100vh - 40px);
+  flex-direction: row;
+  height: calc(100vh - 40px); /* 40px for tabs */
+  width: 100%;
+  position: relative;
 }
 
+.container.vertical {
+  flex-direction: column;
+}
+
+.container.preview-mode .editors {
+  display: none;
+}
+
+.container.preview-mode #preview {
+  height: 100%;
+  width: 100%;
+}
+
+/* === Editors Area === */
 .editors {
   width: 50%;
   height: 100%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #333;
+  position: relative;
+}
+
+.editors.full-height {
+  height: 100%;
 }
 
 .editor {
   flex: 1;
+  height: 100%;
 }
 
 .hidden {
   display: none;
 }
 
+/* === Preview Area === */
 #preview {
   width: 50%;
   height: 100%;
@@ -59,107 +86,101 @@ html, body {
   background: white;
 }
 
-/* Responsive layout */
+/* === Resizer === */
+.resizer {
+  width: 5px;
+  background-color: #444;
+  cursor: col-resize;
+  height: 100%;
+  z-index: 10;
+}
+
+.container.vertical .resizer {
+  width: 100%;
+  height: 5px;
+  cursor: row-resize;
+}
+
+/* === Mobile Responsive === */
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
   }
 
-  .editors,
+  .editors {
+    width: 100%;
+    height: 60%;
+    border-right: none;
+    border-bottom: 1px solid #333;
+  }
+
   #preview {
     width: 100%;
+    height: 40%;
+  }
+
+  .container.preview-mode #preview {
     height: 100%;
   }
 
-  .container.preview-mode #editors {
-    display: none;
-  }
-
-  .container.preview-mode #preview {
-    display: block;
-  }
-
-  .container:not(.preview-mode) #preview {
-    display: none;
-  }
-
-  .mobile-only {
-    display: inline-block;
-    background: #007acc;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    margin-left: auto;
-    cursor: pointer;
-    font-size: 0.9rem;
-    border-radius: 3px;
-  }
-
-  .resizer {
-    display: none; /* Optional: hide resizer on mobile */
-  }
-}
-
-
-
-/* Tombol Preview hanya muncul di mobile */
-.mobile-only {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .mobile-only {
-    display: inline-block;
-    background: #007acc;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    margin-left: auto;
-    cursor: pointer;
-    font-size: 0.9rem;
-    border-radius: 3px;
-  }
-
-  .container.preview-mode #editors {
-    display: none;
-  }
-
-  .container.preview-mode #preview {
-    height: calc(100% - 5px);
-    display: block;
-  }
-
-  .container:not(.preview-mode) #preview {
+  .container.preview-mode .editors {
     display: none;
   }
 }
 
-.floating-keyboard {
+/* === Mobile Controls === */
+.keyboard-button {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  background: #007acc;
+  bottom: 10px;
+  right: 10px;
+  z-index: 20;
+  padding: 10px;
+  background: #333;
   color: white;
   border: none;
-  padding: 10px 16px;
-  font-size: 14px;
   border-radius: 5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  display: none;
+}
+
+.toggle-preview {
+  background: none;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: auto;
   display: none;
 }
 
 @media (max-width: 768px) {
-  .floating-keyboard {
+  .keyboard-button {
+    display: block;
+  }
+
+  .toggle-preview {
     display: block;
   }
 }
 
-/* Add to style.css */
-.editor textarea {
-  pointer-events: none;
+/* === Overlay untuk cegah sentuhan === */
+.touch-shield {
+  position: absolute;
+  top: 40px; /* bawah tab */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 40px);
+  z-index: 15;
+  display: none;
 }
 
-.editor.focus-mode textarea {
-  pointer-events: auto;
+@media (max-width: 768px) {
+  .touch-shield {
+    display: block;
+  }
+
+  .container.preview-mode .touch-shield {
+    display: none;
+  }
 }

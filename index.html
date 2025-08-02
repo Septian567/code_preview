@@ -9,19 +9,24 @@
 </head>
 <body>
   <div class="tabs">
-  <button data-tab="html" class="active">index.html</button>
+  <button class="active" data-tab="html">index.html</button>
   <button data-tab="css">style.css</button>
   <button data-tab="js">script.js</button>
-  <button id="togglePreview" class="mobile-only">Preview</button>
+  <button id="togglePreview" class="toggle-preview">Preview</button>
 </div>
 
-  <div class="container" id="container">
-    <div class="editors" id="editors">
-      <div id="htmlEditor" class="editor"></div>
-      <div id="cssEditor" class="editor hidden"></div>
-      <div id="jsEditor" class="editor hidden"></div>
-      <button id="showKeyboard" class="mobile-only floating-keyboard">Keyboard</button>
-    </div>
+<div id="container" class="container">
+  <div id="editors" class="editors">
+    <div id="htmlEditor" class="editor"></div>
+    <div id="cssEditor" class="editor hidden"></div>
+    <div id="jsEditor" class="editor hidden"></div>
+  </div>
+  <div id="resizer" class="resizer"></div>
+  <iframe id="preview"></iframe>
+  <div id="touchShield" class="touch-shield mobile-only"></div>
+</div>
+
+<button id="showKeyboard" class="keyboard-button">⌨️</button>
 
     <div class="resizer" id="resizer"></div>
 
