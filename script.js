@@ -104,49 +104,63 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
-  function setupHorizontalScroll(editorDomNode) {
-    if (!editorDomNode) return;
+  function setupTouchScrolling(editor, domNode) {
+    if (!domNode) return;
 
-    const scrollableElement = editorDomNode.querySelector(
+    let startX, startY, isScrolling;
+    const scrollableElement = domNode.querySelector(
       ".monaco-scrollable-element"
     );
     if (!scrollableElement) return;
 
-    // Enable horizontal scrolling
-    scrollableElement.style.overflowX = "auto";
-    scrollableElement.style.touchAction = "pan-x pan-y";
+    // Enable touch scrolling
+    domNode.style.touchAction = "none"; // We'll handle it manually
 
-    // Add scroll indicators
-    const container = scrollableElement.parentElement;
-    if (!container.querySelector(".scroll-indicator-right")) {
-      const rightIndicator = document.createElement("div");
-      rightIndicator.className = "scroll-indicator-right";
-      rightIndicator.innerHTML = "→";
-      rightIndicator.style.position = "absolute";
-      rightIndicator.style.right = "5px";
-      rightIndicator.style.top = "50%";
-      rightIndicator.style.transform = "translateY(-50%)";
-      rightIndicator.style.color = "#888";
-      rightIndicator.style.fontSize = "20px";
-      rightIndicator.style.pointerEvents = "none";
-      rightIndicator.style.zIndex = "9";
-      container.appendChild(rightIndicator);
-    }
+    domNode.addEventListener(
+      "touchstart",
+      (e) => {
+        if (editMode) return;
 
-    if (!container.querySelector(".scroll-indicator-left")) {
-      const leftIndicator = document.createElement("div");
-      leftIndicator.className = "scroll-indicator-left";
-      leftIndicator.innerHTML = "←";
-      leftIndicator.style.position = "absolute";
-      leftIndicator.style.left = "25px"; // Sesuai dengan margin left
-      leftIndicator.style.top = "50%";
-      leftIndicator.style.transform = "translateY(-50%)";
-      leftIndicator.style.color = "#888";
-      leftIndicator.style.fontSize = "20px";
-      leftIndicator.style.pointerEvents = "none";
-      leftIndicator.style.zIndex = "9";
-      container.appendChild(leftIndicator);
-    }
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        isScrolling = false;
+      },
+      { passive: false }
+    );
+
+    domNode.addEventListener(
+      "touchmove",
+      (e) => {
+        if (editMode) return;
+
+        const touch = e.touches[0];
+        const diffX = touch.clientX - startX;
+        const diffY = touch.clientY - startY;
+
+        // Determine if user is trying to scroll
+        if (!isScrolling && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
+          isScrolling = true;
+        }
+
+        if (isScrolling) {
+          e.preventDefault();
+          scrollableElement.scrollLeft -= diffX;
+          scrollableElement.scrollTop -= diffY;
+          startX = touch.clientX;
+          startY = touch.clientY;
+        }
+      },
+      { passive: false }
+    );
+
+    domNode.addEventListener(
+      "touchend",
+      () => {
+        isScrolling = false;
+      },
+      { passive: false }
+    );
   }
 
   function applyReadModeStyles(editor, apply) {
@@ -175,7 +189,7 @@ require(["vs/editor/editor.main"], function () {
         domNode.appendChild(overlay);
       }
 
-      // Apply margin left and enable horizontal scroll
+      // Apply margin left
       if (linesContent) {
         linesContent.style.marginLeft = "20px";
         linesContent.style.paddingLeft = "10px";
@@ -185,8 +199,8 @@ require(["vs/editor/editor.main"], function () {
         margin.style.backgroundColor = "#252526";
       }
 
-      // Setup horizontal scroll
-      setupHorizontalScroll(domNode);
+      // Setup touch scrolling
+      setupTouchScrolling(editor, domNode);
     } else {
       // Remove overlay
       if (overlay) {
@@ -202,12 +216,6 @@ require(["vs/editor/editor.main"], function () {
       if (margin) {
         margin.style.backgroundColor = "";
       }
-
-      // Remove scroll indicators
-      const indicators = domNode.querySelectorAll(
-        ".scroll-indicator-right, .scroll-indicator-left"
-      );
-      indicators.forEach((ind) => ind.remove());
     }
   }
 
@@ -239,7 +247,8 @@ require(["vs/editor/editor.main"], function () {
           alwaysConsumeMouseWheel: false,
           handleMouseWheel: true,
           horizontal: "auto",
-          horizontalScrollbarSize: 10,
+          horizontalScrollbarSize: 8,
+          verticalScrollbarSize: 8,
           useShadows: false,
         },
         mouseWheelZoom: editMode,
@@ -253,7 +262,7 @@ require(["vs/editor/editor.main"], function () {
         overviewRulerLanes: editMode ? 3 : 0,
         renderIndentGuides: editMode,
         renderValidationDecorations: "off",
-        wordWrap: "off", // Ensure horizontal scroll works
+        wordWrap: "off",
         wrappingIndent: "none",
         // Disable all editor contributions
         contributions: editMode ? undefined : [],
@@ -282,6 +291,12 @@ require(["vs/editor/editor.main"], function () {
       updateEditModeForActiveEditor();
     });
   }
+
+  // Initialize touch scrolling for all editors
+  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
+    const domNode = editor.getDomNode();
+    setupTouchScrolling(editor, domNode);
+  });
 
   // Apply to all editors initially
   updateEditModeForActiveEditor();
