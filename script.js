@@ -43,6 +43,14 @@ require(["vs/editor/editor.main"], function () {
     automaticLayout: true,
   });
 
+  const editors = document.querySelector(".editors");
+  const preview = document.getElementById("preview");
+  const container = document.querySelector(".container");
+  const resizer = document.getElementById("resizer");
+  const showKeyboardBtn = document.getElementById("showKeyboard");
+  const toggleBtn = document.getElementById("togglePreview");
+  const touchShield = document.getElementById("touchShield");
+
   function updatePreview() {
     let html = htmlEditor.getValue();
     const css = cssEditor.getValue();
@@ -58,8 +66,7 @@ require(["vs/editor/editor.main"], function () {
       `<script>${js}<\/script>`
     );
 
-    const iframe = document.getElementById("preview");
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const doc = preview.contentDocument || preview.contentWindow.document;
     doc.open();
     doc.write(html);
     doc.close();
@@ -85,19 +92,31 @@ require(["vs/editor/editor.main"], function () {
         .forEach((ed) => ed.classList.add("hidden"));
 
       if (tab === "html")
-        document.getElementById("htmlEditor").classList.remove("hidden");
+        htmlEditor.getDomNode().parentElement.classList.remove("hidden");
       if (tab === "css")
-        document.getElementById("cssEditor").classList.remove("hidden");
+        cssEditor.getDomNode().parentElement.classList.remove("hidden");
       if (tab === "js")
-        document.getElementById("jsEditor").classList.remove("hidden");
+        jsEditor.getDomNode().parentElement.classList.remove("hidden");
+
+      resetTouchShieldIfMobile();
     });
   });
 
-  // Tombol keyboard di mobile
-  const showKeyboardBtn = document.getElementById("showKeyboard");
+  // === Mobile-specific behavior ===
+
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  function resetTouchShieldIfMobile() {
+    if (isMobile() && touchShield) {
+      touchShield.style.display = "block";
+    }
+  }
+
+  // Keyboard button for mobile
   if (showKeyboardBtn) {
     showKeyboardBtn.addEventListener("click", () => {
-      // Cari editor aktif
       let activeTab = document
         .querySelector(".tabs button.active")
         ?.getAttribute("data-tab");
@@ -108,39 +127,33 @@ require(["vs/editor/editor.main"], function () {
 
       if (editorInstance) {
         editorInstance.focus();
+        if (touchShield) touchShield.style.display = "none";
       }
     });
   }
 
-  // Supaya tap di editor tidak otomatis fokus (khusus mobile)
+  // Prevent touch from triggering keyboard
   [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
     const domNode = editor.getDomNode();
     if (domNode) {
       domNode.addEventListener(
         "touchstart",
         (e) => {
-          e.preventDefault(); // mencegah fokus otomatis
+          if (isMobile()) e.preventDefault();
         },
         { passive: false }
       );
     }
   });
 
-  // === Responsive Dragging ===
-  const resizer = document.getElementById("resizer");
-  const container = document.getElementById("container");
-  const editors = document.getElementById("editors");
-  const preview = document.getElementById("preview");
-  const toggleBtn = document.getElementById("togglePreview");
-
+  // === Resizer logic ===
   let isResizing = false;
   let vertical = false;
 
   function updateLayoutDirection() {
-    vertical = window.innerWidth <= 768;
+    vertical = isMobile();
     container.classList.toggle("vertical", vertical);
 
-    // Reset preview mode if back to desktop
     if (!vertical) {
       container.classList.remove("preview-mode");
       if (toggleBtn) toggleBtn.textContent = "Preview";
@@ -188,13 +201,17 @@ require(["vs/editor/editor.main"], function () {
     document.body.style.cursor = "default";
   });
 
-  // Mobile-only toggle preview button
+  // Preview toggle button
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       container.classList.toggle("preview-mode");
       toggleBtn.textContent = container.classList.contains("preview-mode")
         ? "Editor"
         : "Preview";
+
+      if (!container.classList.contains("preview-mode")) {
+        resetTouchShieldIfMobile();
+      }
     });
   }
 });
