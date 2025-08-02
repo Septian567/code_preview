@@ -104,6 +104,46 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
+  function completelyDisableEditor(editor) {
+    if (!editor) return;
+
+    // Remove all decorations
+    const model = editor.getModel();
+    if (model) {
+      const decorations = editor.getDecorationsInRange(
+        model.getFullModelRange()
+      );
+      if (decorations) {
+        editor.deltaDecorations(
+          decorations.map((d) => d.id),
+          []
+        );
+      }
+    }
+
+    // Clear selections and move cursor to start
+    editor.setSelections([]);
+    editor.setPosition({ lineNumber: 1, column: 1 });
+
+    // Disable editor content widget
+    const contentWidget = {
+      getId: () => "disableWidget",
+      getDomNode: () => {
+        const node = document.createElement("div");
+        node.style.position = "absolute";
+        node.style.top = "0";
+        node.style.left = "0";
+        node.style.width = "100%";
+        node.style.height = "100%";
+        node.style.zIndex = "10";
+        return node;
+      },
+      getPosition: () => null,
+    };
+
+    editor.addContentWidget(contentWidget);
+  }
+
   function updateEditModeForActiveEditor() {
     const activeTab = document
       .querySelector(".tabs button.active")
@@ -119,9 +159,62 @@ require(["vs/editor/editor.main"], function () {
     }
 
     if (editorInstance) {
-      editorInstance.updateOptions({ readOnly: !editMode });
+      // Full read-only configuration
+      editorInstance.updateOptions({
+        readOnly: !editMode,
+        domReadOnly: !editMode,
+        cursorStyle: "none",
+        hideCursorInOverviewRuler: true,
+        renderLineHighlight: "none",
+        minimap: { enabled: editMode },
+        scrollBeyondLastLine: false,
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+          handleMouseWheel: true,
+        },
+        mouseWheelZoom: editMode,
+        contextmenu: editMode,
+        folding: editMode,
+        glyphMargin: editMode,
+        lineNumbers: editMode ? "on" : "off",
+        selectOnLineNumbers: editMode,
+        selectionHighlight: editMode,
+        renderWhitespace: "none",
+        overviewRulerLanes: editMode ? 3 : 0,
+        renderIndentGuides: editMode,
+        renderValidationDecorations: "off",
+        // Disable all editor contributions
+        contributions: editMode ? undefined : [],
+      });
+
       const domNode = editorInstance.getDomNode();
-      domNode.classList.toggle("readonly", !editMode);
+      if (domNode) {
+        domNode.classList.toggle("readonly", !editMode);
+
+        // Add overlay div in read mode
+        const overlayId = "editorOverlay";
+        let overlay = domNode.querySelector(`#${overlayId}`);
+
+        if (!editMode) {
+          if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = overlayId;
+            overlay.style.position = "absolute";
+            overlay.style.top = "0";
+            overlay.style.left = "0";
+            overlay.style.width = "100%";
+            overlay.style.height = "100%";
+            overlay.style.zIndex = "10";
+            overlay.style.cursor = "default";
+            domNode.appendChild(overlay);
+          }
+
+          // Completely disable editor
+          completelyDisableEditor(editorInstance);
+        } else if (overlay) {
+          overlay.remove();
+        }
+      }
     }
   }
 
@@ -133,21 +226,8 @@ require(["vs/editor/editor.main"], function () {
     });
   }
 
-  // Mobile touch handling
-  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
-    const domNode = editor.getDomNode();
-    if (domNode) {
-      domNode.addEventListener(
-        "touchstart",
-        (e) => {
-          if (!editMode) {
-            e.preventDefault();
-          }
-        },
-        { passive: false }
-      );
-    }
-  });
+  // Apply to all editors initially
+  updateEditModeForActiveEditor();
 
   // Responsive layout and resizing
   const resizer = document.getElementById("resizer");
@@ -218,11 +298,5 @@ require(["vs/editor/editor.main"], function () {
         ? "Editor"
         : "Preview";
     });
-  }
-
-  // Initialize edit mode button state
-  if (toggleEditBtn) {
-    toggleEditBtn.textContent = editMode ? "Read Mode" : "Edit Mode";
-    updateEditModeForActiveEditor();
   }
 });
