@@ -5,6 +5,7 @@ require.config({
 });
 
 require(["vs/editor/editor.main"], function () {
+  // Initialize editors
   const htmlEditor = monaco.editor.create(
     document.getElementById("htmlEditor"),
     {
@@ -43,6 +44,7 @@ require(["vs/editor/editor.main"], function () {
     automaticLayout: true,
   });
 
+  // Update preview function
   function updatePreview() {
     let html = htmlEditor.getValue();
     const css = cssEditor.getValue();
@@ -55,7 +57,7 @@ require(["vs/editor/editor.main"], function () {
 
     html = html.replace(
       /<script\s+src=["']script\.js["']\s*><\/script>/gi,
-      `<script>${js}<\/script>`
+      `<script>${js}</script>`
     );
 
     const iframe = document.getElementById("preview");
@@ -65,84 +67,89 @@ require(["vs/editor/editor.main"], function () {
     doc.close();
   }
 
+  // Set up editor change listeners
   [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
     editor.onDidChangeModelContent(updatePreview);
   });
 
+  // Initial preview update
   updatePreview();
 
-  // Tab switching
+  // Tab switching functionality
   document.querySelectorAll(".tabs button[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
-      document
-        .querySelectorAll(".tabs button")
-        .forEach((btn) => btn.classList.remove("active"));
+      document.querySelectorAll(".tabs button").forEach((btn) => {
+        btn.classList.remove("active");
+      });
       button.classList.add("active");
 
       const tab = button.getAttribute("data-tab");
-      document
-        .querySelectorAll(".editor")
-        .forEach((ed) => ed.classList.add("hidden"));
+      document.querySelectorAll(".editor").forEach((ed) => {
+        ed.classList.add("hidden");
+      });
 
-      if (tab === "html")
+      if (tab === "html") {
         document.getElementById("htmlEditor").classList.remove("hidden");
-      if (tab === "css")
+      } else if (tab === "css") {
         document.getElementById("cssEditor").classList.remove("hidden");
-      if (tab === "js")
+      } else if (tab === "js") {
         document.getElementById("jsEditor").classList.remove("hidden");
+      }
+
+      updateEditModeForActiveEditor();
     });
   });
 
-  // Double-tap keyboard button
-  const showKeyboardBtn = document.getElementById("showKeyboard");
-  if (showKeyboardBtn) {
-    let lastTapTime = 0;
-    const doubleTapThreshold = 300; // ms
+  // Edit mode toggle functionality
+  const toggleEditBtn = document.getElementById("toggleEditMode");
+  let editMode = true;
 
-    showKeyboardBtn.addEventListener("click", (e) => {
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTapTime;
+  function updateEditModeForActiveEditor() {
+    const activeTab = document
+      .querySelector(".tabs button.active")
+      ?.getAttribute("data-tab");
+    let editorInstance;
 
-      if (tapLength < doubleTapThreshold && tapLength > 0) {
-        // Double-tap detected
-        showKeyboardBtn.classList.add("active");
+    if (activeTab === "html") {
+      editorInstance = htmlEditor;
+    } else if (activeTab === "css") {
+      editorInstance = cssEditor;
+    } else if (activeTab === "js") {
+      editorInstance = jsEditor;
+    }
 
-        let activeTab = document
-          .querySelector(".tabs button.active")
-          ?.getAttribute("data-tab");
-        let editorInstance;
-        if (activeTab === "html") editorInstance = htmlEditor;
-        if (activeTab === "css") editorInstance = cssEditor;
-        if (activeTab === "js") editorInstance = jsEditor;
+    if (editorInstance) {
+      editorInstance.updateOptions({ readOnly: !editMode });
+      const domNode = editorInstance.getDomNode();
+      domNode.classList.toggle("readonly", !editMode);
+    }
+  }
 
-        if (editorInstance) {
-          editorInstance.focus();
-        }
-
-        // Reset after 1 second
-        setTimeout(() => {
-          showKeyboardBtn.classList.remove("active");
-        }, 1000);
-      }
-      lastTapTime = currentTime;
+  if (toggleEditBtn) {
+    toggleEditBtn.addEventListener("click", () => {
+      editMode = !editMode;
+      toggleEditBtn.textContent = editMode ? "Read Mode" : "Edit Mode";
+      updateEditModeForActiveEditor();
     });
   }
 
-  // Prevent auto-focus on mobile
+  // Mobile touch handling
   [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
     const domNode = editor.getDomNode();
     if (domNode) {
       domNode.addEventListener(
         "touchstart",
         (e) => {
-          e.preventDefault();
+          if (!editMode) {
+            e.preventDefault();
+          }
         },
         { passive: false }
       );
     }
   });
 
-  // Resizer functionality
+  // Responsive layout and resizing
   const resizer = document.getElementById("resizer");
   const container = document.getElementById("container");
   const editors = document.getElementById("editors");
@@ -165,15 +172,13 @@ require(["vs/editor/editor.main"], function () {
   updateLayoutDirection();
   window.addEventListener("resize", updateLayoutDirection);
 
-  resizer.addEventListener("mousedown", function (e) {
-    e.preventDefault();
+  resizer.addEventListener("mousedown", function () {
     isResizing = true;
     document.body.style.cursor = vertical ? "row-resize" : "col-resize";
   });
 
   document.addEventListener("mousemove", function (e) {
     if (!isResizing) return;
-    e.preventDefault();
 
     const rect = container.getBoundingClientRect();
 
@@ -200,8 +205,7 @@ require(["vs/editor/editor.main"], function () {
     }
   });
 
-  document.addEventListener("mouseup", function (e) {
-    e.preventDefault();
+  document.addEventListener("mouseup", function () {
     isResizing = false;
     document.body.style.cursor = "default";
   });
@@ -214,5 +218,11 @@ require(["vs/editor/editor.main"], function () {
         ? "Editor"
         : "Preview";
     });
+  }
+
+  // Initialize edit mode button state
+  if (toggleEditBtn) {
+    toggleEditBtn.textContent = editMode ? "Read Mode" : "Edit Mode";
+    updateEditModeForActiveEditor();
   }
 });
