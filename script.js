@@ -104,75 +104,49 @@ require(["vs/editor/editor.main"], function () {
   const toggleEditBtn = document.getElementById("toggleEditMode");
   let editMode = true;
 
-  function setupMobileFriendlyScroll(editor, domNode) {
-    if (!domNode) return;
+  function setupHorizontalScroll(editorDomNode) {
+    if (!editorDomNode) return;
 
-    // Set scrollbar height to 1cm (approx 38px)
-    const style = document.createElement("style");
-    style.id = "monaco-scrollbar-style";
-    style.textContent = `
-      .monaco-scrollable-element > .scrollbar.horizontal {
-        height: 38px !important;
-        min-height: 38px !important;
-      }
-      .monaco-scrollable-element > .scrollbar.horizontal .slider {
-        height: 38px !important;
-      }
-      .monaco-scrollable-element > .scrollbar.horizontal .slider:active {
-        height: 38px !important;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Setup touch scrolling
-    let startX, startY, isScrolling;
-    const scrollableElement = domNode.querySelector(
+    const scrollableElement = editorDomNode.querySelector(
       ".monaco-scrollable-element"
     );
     if (!scrollableElement) return;
 
-    domNode.addEventListener(
-      "touchstart",
-      (e) => {
-        if (editMode) return;
-        const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
-        isScrolling = false;
-      },
-      { passive: false }
-    );
+    // Enable horizontal scrolling
+    scrollableElement.style.overflowX = "auto";
+    scrollableElement.style.touchAction = "pan-x pan-y";
 
-    domNode.addEventListener(
-      "touchmove",
-      (e) => {
-        if (editMode) return;
-        const touch = e.touches[0];
-        const diffX = touch.clientX - startX;
-        const diffY = touch.clientY - startY;
+    // Add scroll indicators
+    const container = scrollableElement.parentElement;
+    if (!container.querySelector(".scroll-indicator-right")) {
+      const rightIndicator = document.createElement("div");
+      rightIndicator.className = "scroll-indicator-right";
+      rightIndicator.innerHTML = "→";
+      rightIndicator.style.position = "absolute";
+      rightIndicator.style.right = "5px";
+      rightIndicator.style.top = "50%";
+      rightIndicator.style.transform = "translateY(-50%)";
+      rightIndicator.style.color = "#888";
+      rightIndicator.style.fontSize = "20px";
+      rightIndicator.style.pointerEvents = "none";
+      rightIndicator.style.zIndex = "9";
+      container.appendChild(rightIndicator);
+    }
 
-        if (!isScrolling && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
-          isScrolling = true;
-        }
-
-        if (isScrolling) {
-          e.preventDefault();
-          scrollableElement.scrollLeft -= diffX;
-          scrollableElement.scrollTop -= diffY;
-          startX = touch.clientX;
-          startY = touch.clientY;
-        }
-      },
-      { passive: false }
-    );
-
-    domNode.addEventListener(
-      "touchend",
-      () => {
-        isScrolling = false;
-      },
-      { passive: false }
-    );
+    if (!container.querySelector(".scroll-indicator-left")) {
+      const leftIndicator = document.createElement("div");
+      leftIndicator.className = "scroll-indicator-left";
+      leftIndicator.innerHTML = "←";
+      leftIndicator.style.position = "absolute";
+      leftIndicator.style.left = "25px"; // Sesuai dengan margin left
+      leftIndicator.style.top = "50%";
+      leftIndicator.style.transform = "translateY(-50%)";
+      leftIndicator.style.color = "#888";
+      leftIndicator.style.fontSize = "20px";
+      leftIndicator.style.pointerEvents = "none";
+      leftIndicator.style.zIndex = "9";
+      container.appendChild(leftIndicator);
+    }
   }
 
   function applyReadModeStyles(editor, apply) {
@@ -201,7 +175,7 @@ require(["vs/editor/editor.main"], function () {
         domNode.appendChild(overlay);
       }
 
-      // Apply margin left
+      // Apply margin left and enable horizontal scroll
       if (linesContent) {
         linesContent.style.marginLeft = "20px";
         linesContent.style.paddingLeft = "10px";
@@ -211,8 +185,8 @@ require(["vs/editor/editor.main"], function () {
         margin.style.backgroundColor = "#252526";
       }
 
-      // Setup mobile-friendly scroll
-      setupMobileFriendlyScroll(editor, domNode);
+      // Setup horizontal scroll
+      setupHorizontalScroll(domNode);
     } else {
       // Remove overlay
       if (overlay) {
@@ -229,11 +203,11 @@ require(["vs/editor/editor.main"], function () {
         margin.style.backgroundColor = "";
       }
 
-      // Remove custom scrollbar style
-      const existingStyle = document.getElementById("monaco-scrollbar-style");
-      if (existingStyle) {
-        existingStyle.remove();
-      }
+      // Remove scroll indicators
+      const indicators = domNode.querySelectorAll(
+        ".scroll-indicator-right, .scroll-indicator-left"
+      );
+      indicators.forEach((ind) => ind.remove());
     }
   }
 
@@ -265,8 +239,7 @@ require(["vs/editor/editor.main"], function () {
           alwaysConsumeMouseWheel: false,
           handleMouseWheel: true,
           horizontal: "auto",
-          horizontalScrollbarSize: 38, // 1cm in pixels
-          verticalScrollbarSize: 8,
+          horizontalScrollbarSize: 10,
           useShadows: false,
         },
         mouseWheelZoom: editMode,
@@ -280,7 +253,7 @@ require(["vs/editor/editor.main"], function () {
         overviewRulerLanes: editMode ? 3 : 0,
         renderIndentGuides: editMode,
         renderValidationDecorations: "off",
-        wordWrap: "off",
+        wordWrap: "off", // Ensure horizontal scroll works
         wrappingIndent: "none",
         // Disable all editor contributions
         contributions: editMode ? undefined : [],
@@ -309,12 +282,6 @@ require(["vs/editor/editor.main"], function () {
       updateEditModeForActiveEditor();
     });
   }
-
-  // Initialize touch scrolling for all editors
-  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
-    const domNode = editor.getDomNode();
-    setupMobileFriendlyScroll(editor, domNode);
-  });
 
   // Apply to all editors initially
   updateEditModeForActiveEditor();
