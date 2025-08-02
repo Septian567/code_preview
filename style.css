@@ -133,3 +133,25 @@ html, body {
     display: none;
   }
 }
+
+.floating-keyboard {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: #007acc;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .floating-keyboard {
+    display: block;
+  }
+}
+

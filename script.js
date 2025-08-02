@@ -93,6 +93,39 @@ require(["vs/editor/editor.main"], function () {
     });
   });
 
+  // Tombol keyboard di mobile
+  const showKeyboardBtn = document.getElementById("showKeyboard");
+  if (showKeyboardBtn) {
+    showKeyboardBtn.addEventListener("click", () => {
+      // Cari editor aktif
+      let activeTab = document
+        .querySelector(".tabs button.active")
+        ?.getAttribute("data-tab");
+      let editorInstance;
+      if (activeTab === "html") editorInstance = htmlEditor;
+      if (activeTab === "css") editorInstance = cssEditor;
+      if (activeTab === "js") editorInstance = jsEditor;
+
+      if (editorInstance) {
+        editorInstance.focus();
+      }
+    });
+  }
+
+  // Supaya tap di editor tidak otomatis fokus (khusus mobile)
+  [htmlEditor, cssEditor, jsEditor].forEach((editor) => {
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      domNode.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault(); // mencegah fokus otomatis
+        },
+        { passive: false }
+      );
+    }
+  });
+
   // === Responsive Dragging ===
   const resizer = document.getElementById("resizer");
   const container = document.getElementById("container");
